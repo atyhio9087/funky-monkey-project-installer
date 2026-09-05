@@ -1220,11 +1220,11 @@ input[type=range].tp-slider::-webkit-slider-thumb {
   </div>
   <div id="transport">
     <button class="t-btn" id="back-btn" title="New file">←</button>
-    <button class="t-btn icon-btn" id="shuffle-btn" title="Shuffle">⇄</button>
-    <button class="t-btn icon-btn" id="prev-btn" title="Previous">⏮</button>
-    <button class="t-btn" id="play-btn">▶</button>
-    <button class="t-btn icon-btn" id="next-btn" title="Next">⏭</button>
-    <button class="t-btn icon-btn" id="repeat-btn" title="Repeat (off)">⇌</button>
+    <button class="t-btn icon-btn" id="shuffle-btn" title="Shuffle"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg></button>
+    <button class="t-btn icon-btn" id="prev-btn" title="Previous"><svg viewBox="0 0 24 24" width="13" height="13"><rect x="4" y="5" width="2.5" height="14" fill="currentColor"/><polygon points="19,5 8,12 19,19" fill="currentColor"/></svg></button>
+    <button class="t-btn" id="play-btn"><svg viewBox="0 0 24 24" width="15" height="15"><polygon points="6,4 20,12 6,20" fill="currentColor"/></svg></button>
+    <button class="t-btn icon-btn" id="next-btn" title="Next"><svg viewBox="0 0 24 24" width="13" height="13"><polygon points="5,5 16,12 5,19" fill="currentColor"/><rect x="17.5" y="5" width="2.5" height="14" fill="currentColor"/></svg></button>
+    <button class="t-btn icon-btn" id="repeat-btn" title="Repeat (off)"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
     <div id="progress-wrap">
       <div id="progress-track">
         <div id="progress-fill">
@@ -2484,7 +2484,13 @@ async function loadAndPlay(file) {
 }
 
 let userPaused = false;
-function setPlayBtn(playing) { document.getElementById('play-btn').textContent = playing ? '⏸' : '▶'; }
+// Inline SVGs instead of Unicode glyphs (▶/⏸/⏮/⏭/⇄/⇌) — those symbol
+// characters render inconsistently across OS/Chromium-version font-fallback
+// chains (fine in a regular browser, visibly different bundled inside
+// Electron), so the transport icons are drawn directly instead.
+const PLAY_ICON = '<svg viewBox="0 0 24 24" width="15" height="15"><polygon points="6,4 20,12 6,20" fill="currentColor"/></svg>';
+const PAUSE_ICON = '<svg viewBox="0 0 24 24" width="15" height="15"><rect x="6" y="4" width="4.5" height="16" fill="currentColor"/><rect x="13.5" y="4" width="4.5" height="16" fill="currentColor"/></svg>';
+function setPlayBtn(playing) { document.getElementById('play-btn').innerHTML = playing ? PAUSE_ICON : PLAY_ICON; }
 
 // ── MEDIA SESSION (OS/lock-screen/headset controls) ────
 // AudioBufferSourceNode playback is invisible to the OS by default — without
@@ -2734,9 +2740,11 @@ document.getElementById('repeat-btn').addEventListener('click', () => {
   else repeatMode = 'none';
   const btn = document.getElementById('repeat-btn');
   btn.classList.remove('active', 'active-one');
-  if (repeatMode === 'one') { btn.textContent = '⇂'; btn.title = 'Repeat: one'; btn.classList.add('active-one'); }
-  else if (repeatMode === 'all') { btn.textContent = '⇌'; btn.title = 'Repeat: all'; btn.classList.add('active'); }
-  else { btn.textContent = '⇌'; btn.title = 'Repeat: off'; }
+  // Icon shape stays the same across modes (a static SVG in the HTML) —
+  // only the title and the active/active-one color state change.
+  if (repeatMode === 'one') { btn.title = 'Repeat: one'; btn.classList.add('active-one'); }
+  else if (repeatMode === 'all') { btn.title = 'Repeat: all'; btn.classList.add('active'); }
+  else { btn.title = 'Repeat: off'; }
   renderQueuePanel();
 });
 

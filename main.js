@@ -73,14 +73,19 @@ function installGoogleDriveRefererFix() {
 }
 
 // Electron denies every permission request (mic, etc.) by default once an
-// app is packaged. Live mode needs the microphone, so explicitly allow only
-// that — everything else (camera, geolocation, notifications, ...) stays
-// denied since this app has no use for it.
+// app is packaged. Live mode needs the microphone, and the fullscreen
+// button needs the (separate, easy to overlook) "fullscreen" permission —
+// Chromium routes the HTML5 Fullscreen API through the same permission
+// system, and without this the app's own requestFullscreen() call silently
+// rejects with "Permissions check failed". Everything else (camera,
+// geolocation, notifications, ...) stays denied since this app has no use
+// for it.
+const ALLOWED_PERMISSIONS = new Set(['media', 'fullscreen']);
 function installPermissionHandler() {
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
-    callback(permission === 'media');
+    callback(ALLOWED_PERMISSIONS.has(permission));
   });
-  session.defaultSession.setPermissionCheckHandler((webContents, permission) => permission === 'media');
+  session.defaultSession.setPermissionCheckHandler((webContents, permission) => ALLOWED_PERMISSIONS.has(permission));
 }
 
 // Anything the app opens that isn't itself (e.g. a "learn more" link put in
