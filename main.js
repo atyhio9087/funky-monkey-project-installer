@@ -19,6 +19,25 @@ function installLegalDocHandler() {
   });
 }
 
+// The bundled Google API key is restricted (in Google Cloud Console) to only
+// accept requests carrying a specific site's Referer header — that's the
+// key's actual security boundary, since it's otherwise public in the app's
+// source. That works fine for the web version, but a desktop app's file://
+// pages send no Referer at all, and Google rejects those outright ("Requests
+// from referer <empty> are blocked"). A renderer can't fix this itself —
+// Referer is a forbidden header that fetch()/XHR are not allowed to set —
+// but Electron's network layer can inject it before the request leaves.
+const GOOGLE_API_REFERRER = 'https://visualizer-ten-drab.vercel.app/';
+function installGoogleDriveRefererFix() {
+  session.defaultSession.webRequest.onBeforeSendHeaders(
+    { urls: ['https://www.googleapis.com/*'] },
+    (details, callback) => {
+      details.requestHeaders['Referer'] = GOOGLE_API_REFERRER;
+      callback({ requestHeaders: details.requestHeaders });
+    }
+  );
+}
+
 // Electron denies every permission request (mic, etc.) by default once an
 // app is packaged. Live mode needs the microphone, so explicitly allow only
 // that — everything else (camera, geolocation, notifications, ...) stays
@@ -69,6 +88,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  installGoogleDriveRefererFix();
   installPermissionHandler();
   installLegalDocHandler();
   Menu.setApplicationMenu(null);
