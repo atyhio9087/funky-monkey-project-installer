@@ -18,6 +18,20 @@ one explicit, user-initiated exception:
 - Loading tracks from a public Google Drive folder link (talks directly to
   Google's servers — see [PRIVACY.md](PRIVACY.md))
 
+## Download
+
+**[Latest release →](https://github.com/atyhio9087/funky-monkey-project-installer/releases/latest)**
+(Windows `.exe`, macOS `.dmg`, Linux `.AppImage`/`.deb`)
+
+None of these are code-signed (no Apple/Microsoft certificate), so:
+- **Windows**: SmartScreen will say "unrecognized app" — click *More info →
+  Run anyway*.
+- **macOS**: Gatekeeper will block the first launch — right-click the app →
+  *Open* instead of double-clicking.
+
+That link always points at the newest tagged build — see [Build an
+installer](#build-an-installer) below for how a new one gets published.
+
 ## Run it locally
 
 ```bash
@@ -27,12 +41,17 @@ npm start
 
 ## Build an installer
 
-Electron can only produce a real, correctly-signed installer for the OS
-you're building *on* — you can't build a `.dmg` from Windows, for instance.
-Build on each target platform, or use the included GitHub Actions workflow
-(`.github/workflows/build.yml`, run manually from the Actions tab or by
-pushing a `vX.Y.Z` tag) to build all three in CI and download them as
-artifacts.
+Electron can only produce a real installer for the OS you're building *on*
+— you can't build a `.dmg` from Windows, for instance. Build on each target
+platform, or use the included GitHub Actions workflow
+(`.github/workflows/build.yml`):
+
+- **Push a `vX.Y.Z` tag** (`git tag v1.0.4 && git push origin v1.0.4`) to
+  build all three platforms *and* publish them to a GitHub Release — that's
+  what the [Download](#download) link above points at.
+- **Run it manually** from the Actions tab (no tag needed) for a one-off
+  build without publishing a release — grab the per-OS zips from that run's
+  *Artifacts* section instead.
 
 ```bash
 npm run dist:win      # Windows: NSIS installer (.exe)
