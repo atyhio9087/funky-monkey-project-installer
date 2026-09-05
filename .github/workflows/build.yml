@@ -1,0 +1,36 @@
+name: Build installers
+
+# Builds the Windows, macOS, and Linux installers on their native platforms
+# (electron-builder can't cross-compile a real .dmg or code-signed .exe from
+# a different OS). Run manually from the Actions tab, or push a tag like
+# "v1.0.1" to build automatically. Finished installers show up as workflow
+# artifacts — no publishing/signing is configured, so this is meant for
+# grabbing local-use builds, not auto-updating public releases.
+on:
+  workflow_dispatch: {}
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.os }}
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.AppImage
+            dist/*.deb
+          if-no-files-found: ignore

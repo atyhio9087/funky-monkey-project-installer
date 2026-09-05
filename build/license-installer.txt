@@ -1,0 +1,32 @@
+FUNKY MONKEY VISUALIZER
+End User License & Privacy Notice
+
+By clicking "I Agree," you accept the following:
+
+1. LICENSE. This software is provided under the MIT License. You may use,
+   copy, and modify it freely. Full text: LICENSE (installed alongside the
+   app) or the project repository.
+
+2. NO WARRANTY. This software is provided "as is," with no warranty of any
+   kind. The author is not liable for any damages arising from its use.
+
+3. PRIVACY. This app has no backend server, collects no analytics or
+   telemetry, and does not transmit your audio files anywhere. Two
+   exceptions, both under your control:
+     - Microphone access is requested only if you choose "Use microphone"
+       (Live mode), and audio is processed on-device only, never recorded
+       or transmitted.
+     - The "Google Drive" feature sends requests directly from your device
+       to Google's servers to fetch files you select from a folder link you
+       provide. That exchange is governed by Google's own Privacy Policy,
+       not the app author's.
+
+   Full privacy policy: PRIVACY.md (installed alongside the app) or the
+   project repository.
+
+4. THIRD-PARTY SERVICES. The Google Drive feature relies on Google's APIs
+   and is subject to Google's Terms of Service. Only use folder links you
+   have the right to access.
+
+By continuing, you confirm you have read and agree to the Terms of Use
+(TERMS.md, installed alongside the app) and the Privacy Policy above.

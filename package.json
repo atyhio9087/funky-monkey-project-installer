@@ -1,0 +1,79 @@
+{
+  "name": "funky-monkey-visualizer",
+  "productName": "Funky Monkey Visualizer",
+  "version": "1.0.0",
+  "description": "A desktop audio visualizer that interprets sound into a psychedelic visual system.",
+  "main": "main.js",
+  "author": "Ayan Mukherjee",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux",
+    "dist:all": "electron-builder -mwl"
+  },
+  "devDependencies": {
+    "electron": "^32.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.funkymonkey.visualizer",
+    "productName": "Funky Monkey Visualizer",
+    "copyright": "Copyright © 2026 Ayan Mukherjee",
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "app/**/*",
+      "LICENSE",
+      "PRIVACY.md",
+      "TERMS.md",
+      "!app/**/*.md"
+    ],
+    "asar": false,
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "license": "build/license-installer.txt"
+    },
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] }
+      ],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.music",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Funky Monkey Visualizer uses your microphone only in Live mode to draw visuals from sound playing in the room. Audio is processed on your device and is never recorded or sent anywhere."
+      },
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "title": "${productName} ${version}"
+    },
+    "linux": {
+      "target": [
+        { "target": "AppImage", "arch": ["x64"] },
+        { "target": "deb", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.png",
+      "category": "AudioVideo",
+      "maintainer": "Ayan Mukherjee"
+    }
+  }
+}
