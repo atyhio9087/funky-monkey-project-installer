@@ -870,6 +870,47 @@ input[type=range].tp-slider::-webkit-slider-thumb {
   padding: 13px; border-radius: 2px; cursor: pointer; transition: all 0.15s;
 }
 .legal-agree-btn:hover { background: rgba(180,120,255,0.22); border-color: rgba(180,120,255,0.8); }
+
+/* ── IN-APP LEGAL DOCUMENT VIEWER ── */
+#legal-doc-viewer {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,0.85);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+#legal-doc-viewer.hidden { display: none; }
+.legal-doc-card {
+  width: min(640px, 100%); max-height: min(80vh, 700px);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 4px;
+  background: #0a0a0a;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.legal-doc-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); flex-shrink: 0;
+}
+.legal-doc-title {
+  font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.7);
+}
+.legal-doc-close {
+  background: none; border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.5);
+  width: 26px; height: 26px; border-radius: 2px; cursor: pointer; font-size: 13px;
+}
+.legal-doc-close:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
+.legal-doc-body {
+  padding: 22px 24px; overflow-y: auto;
+  font-size: 12px; line-height: 1.75; color: rgba(255,255,255,0.6);
+}
+.legal-doc-body h1 { font-size: 15px; color: rgba(255,255,255,0.9); margin: 0 0 14px; letter-spacing: 0.04em; }
+.legal-doc-body h2 { font-size: 12px; color: rgba(255,255,255,0.85); text-transform: uppercase; letter-spacing: 0.08em; margin: 20px 0 8px; }
+.legal-doc-body h2:first-child { margin-top: 0; }
+.legal-doc-body p { margin: 0 0 12px; }
+.legal-doc-body ul { margin: 0 0 12px; padding-left: 18px; }
+.legal-doc-body li { margin-bottom: 6px; }
+.legal-doc-body a { color: rgba(180,140,255,0.85); }
+.legal-doc-body strong { color: rgba(255,255,255,0.8); }
 </style>
 </head>
 <body>
@@ -891,25 +932,114 @@ input[type=range].tp-slider::-webkit-slider-thumb {
     <button class="legal-agree-btn" id="legal-agree-btn">I Agree &amp; Continue</button>
   </div>
 </div>
+
+<!-- IN-APP LEGAL DOCUMENT VIEWER -->
+<div id="legal-doc-viewer" class="hidden">
+  <div class="legal-doc-card">
+    <div class="legal-doc-header">
+      <div class="legal-doc-title" id="legal-doc-title">Document</div>
+      <button class="legal-doc-close" id="legal-doc-close" title="Close">×</button>
+    </div>
+    <div class="legal-doc-body" id="legal-doc-body">Loading…</div>
+  </div>
+</div>
+
 <script>
 // Runs immediately (before the rest of the page's script) so a returning
 // user who already agreed doesn't see this screen flash before disappearing.
 (function() {
-  var KEY = 'funkyMonkeyConsentAccepted_v1';
-  var screen = document.getElementById('legal-consent-screen');
-  var alreadyAgreed = false;
-  try { alreadyAgreed = localStorage.getItem(KEY) === '1'; } catch (e) {}
-  screen.classList.toggle('hidden', alreadyAgreed);
+  var consentScreen = document.getElementById('legal-consent-screen');
+  var docViewer = document.getElementById('legal-doc-viewer');
+  var docTitle = document.getElementById('legal-doc-title');
+  var docBody = document.getElementById('legal-doc-body');
+  var LOCAL_KEY = 'funkyMonkeyConsentAccepted_v1'; // fallback if not running inside the desktop app
 
-  function openDoc(name) {
-    if (window.appLegal && window.appLegal.open) window.appLegal.open(name);
+  var DOC_LABELS = { privacy: 'Privacy Policy', terms: 'Terms of Use', license: 'License' };
+
+  // Tiny, safe Markdown -> HTML: only handles the handful of constructs the
+  // three bundled docs actually use (headings, bullet lists, bold, links,
+  // paragraphs). Escapes everything else so this can't inject markup.
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
+  function inlineFormat(s) {
+    s = escapeHtml(s);
+    s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/\[(.+?)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    return s;
+  }
+  function renderMarkdown(md) {
+    var lines = md.replace(/\r\n/g, '\n').split('\n');
+    var html = '';
+    var inList = false;
+    function closeList() { if (inList) { html += '</ul>'; inList = false; } }
+    lines.forEach(function (raw) {
+      var line = raw.trim();
+      if (!line) { closeList(); return; }
+      if (/^#\s+/.test(line)) { closeList(); html += '<h1>' + inlineFormat(line.replace(/^#\s+/, '')) + '</h1>'; return; }
+      if (/^##\s+/.test(line)) { closeList(); html += '<h2>' + inlineFormat(line.replace(/^##\s+/, '')) + '</h2>'; return; }
+      if (/^[-*]\s+/.test(line)) {
+        if (!inList) { html += '<ul>'; inList = true; }
+        html += '<li>' + inlineFormat(line.replace(/^[-*]\s+/, '')) + '</li>';
+        return;
+      }
+      closeList();
+      html += '<p>' + inlineFormat(line) + '</p>';
+    });
+    closeList();
+    return html;
+  }
+  // LICENSE is plain text (paragraphs only, no markdown syntax) — reuse the
+  // same renderer, which degrades to plain <p> tags for it.
+  function renderPlainText(txt) {
+    return txt.replace(/\r\n/g, '\n').split(/\n{2,}/)
+      .map(function (para) { return '<p>' + inlineFormat(para.trim()).replace(/\n/g, '<br>') + '</p>'; })
+      .join('');
+  }
+
+  async function openDoc(name) {
+    docTitle.textContent = DOC_LABELS[name] || 'Document';
+    docBody.innerHTML = 'Loading…';
+    docViewer.classList.remove('hidden');
+    if (!(window.appLegal && window.appLegal.read)) {
+      docBody.innerHTML = '<p>Unavailable outside the desktop app.</p>';
+      return;
+    }
+    var res = await window.appLegal.read(name);
+    if (!res || !res.ok) {
+      docBody.innerHTML = '<p>Could not load this document' + (res && res.error ? ': ' + escapeHtml(res.error) : '.') + '</p>';
+      return;
+    }
+    docBody.innerHTML = name === 'license' ? renderPlainText(res.content) : renderMarkdown(res.content);
+  }
+  function closeDoc() { docViewer.classList.add('hidden'); }
+
   document.getElementById('legal-view-privacy').addEventListener('click', function () { openDoc('privacy'); });
   document.getElementById('legal-view-terms').addEventListener('click', function () { openDoc('terms'); });
   document.getElementById('legal-view-license').addEventListener('click', function () { openDoc('license'); });
+  document.getElementById('legal-doc-close').addEventListener('click', closeDoc);
+  docViewer.addEventListener('click', function (e) { if (e.target === docViewer) closeDoc(); });
+
+  async function hasAlreadyAgreed() {
+    if (window.appLegal && window.appLegal.getConsentAccepted) {
+      try { return await window.appLegal.getConsentAccepted(); } catch (e) {}
+    }
+    try { return localStorage.getItem(LOCAL_KEY) === '1'; } catch (e) { return false; }
+  }
+  async function markAgreed() {
+    try { localStorage.setItem(LOCAL_KEY, '1'); } catch (e) {}
+    if (window.appLegal && window.appLegal.setConsentAccepted) {
+      try { await window.appLegal.setConsentAccepted(); } catch (e) {}
+    }
+  }
+
   document.getElementById('legal-agree-btn').addEventListener('click', function () {
-    try { localStorage.setItem(KEY, '1'); } catch (e) {}
-    screen.classList.add('hidden');
+    markAgreed();
+    consentScreen.classList.add('hidden');
+  });
+
+  hasAlreadyAgreed().then(function (agreed) {
+    consentScreen.classList.toggle('hidden', agreed);
   });
 })();
 </script>

@@ -1,7 +1,8 @@
 const { app, BrowserWindow, session, shell, Menu, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
-// Fixed whitelist — the renderer can only ever ask to open exactly one of
+// Fixed whitelist — the renderer can only ever ask to read exactly one of
 // these three bundled documents, never an arbitrary path.
 const LEGAL_DOCS = {
   license: 'LICENSE',
@@ -10,12 +11,45 @@ const LEGAL_DOCS = {
 };
 
 function installLegalDocHandler() {
-  ipcMain.handle('open-legal-doc', (event, name) => {
+  // Read the raw text back to the renderer so it can be shown in an in-app
+  // viewer, instead of shell.openPath() handing it to whatever external app
+  // (Notepad, TextEdit, ...) the OS associates with that file type.
+  ipcMain.handle('read-legal-doc', (event, name) => {
     const filename = LEGAL_DOCS[name];
     if (!filename) return { ok: false, error: 'Unknown document' };
-    const fullPath = path.join(app.getAppPath(), filename);
-    shell.openPath(fullPath);
-    return { ok: true };
+    try {
+      const fullPath = path.join(app.getAppPath(), filename);
+      const content = fs.readFileSync(fullPath, 'utf8');
+      return { ok: true, content };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+}
+
+// Whether the user has accepted the first-run consent screen — kept as a
+// small marker file in the app's own userData directory (not localStorage)
+// so it's unambiguously a single persistent value the main process owns,
+// survives the renderer being reloaded, and isn't affected by anything that
+// might clear site data.
+const CONSENT_FLAG_PATH = () => path.join(app.getPath('userData'), 'consent-accepted.json');
+
+function installConsentHandlers() {
+  ipcMain.handle('get-consent-accepted', () => {
+    try {
+      const data = JSON.parse(fs.readFileSync(CONSENT_FLAG_PATH(), 'utf8'));
+      return data.accepted === true;
+    } catch {
+      return false;
+    }
+  });
+  ipcMain.handle('set-consent-accepted', () => {
+    try {
+      fs.writeFileSync(CONSENT_FLAG_PATH(), JSON.stringify({ accepted: true, at: new Date().toISOString() }));
+      return true;
+    } catch {
+      return false;
+    }
   });
 }
 
@@ -91,6 +125,7 @@ app.whenReady().then(() => {
   installGoogleDriveRefererFix();
   installPermissionHandler();
   installLegalDocHandler();
+  installConsentHandlers();
   Menu.setApplicationMenu(null);
   createWindow();
 
