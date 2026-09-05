@@ -15,9 +15,17 @@ on:
 jobs:
   build:
     strategy:
+      # Don't cancel the other OS builds just because one platform fails —
+      # each is independent, and we still want e.g. the Windows/Linux
+      # artifacts even if macOS needs another pass.
+      fail-fast: false
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      # Never attempt to auto-discover a code-signing identity on any OS —
+      # these are unsigned local-use builds by design (see README).
+      CSC_IDENTITY_AUTO_DISCOVERY: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

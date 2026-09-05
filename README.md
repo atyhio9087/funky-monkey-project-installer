@@ -51,11 +51,13 @@ publisher" warning on first run unless you have a code-signing certificate
 to add via `win.certificateFile`/`certificatePassword` in `package.json`.
 
 ### macOS
-Produces a `.dmg`. `hardenedRuntime` is enabled and the microphone usage
-description is set (`NSMicrophoneUsageDescription`) so Live mode's mic
-permission prompt shows correctly — but the build isn't notarized. Without
-Apple notarization, Gatekeeper will block it on first launch; users can
-right-click → Open to bypass, or you can add notarization credentials
+Produces an unsigned `.dmg` (`mac.identity: null` — there's no Apple
+Developer certificate configured, and `hardenedRuntime` needs one to apply,
+so it's left off). The microphone usage description is still set
+(`NSMicrophoneUsageDescription`) so Live mode's mic permission prompt shows
+correctly. Without code signing or notarization, Gatekeeper will block it on
+first launch; users can right-click → Open to bypass, or you can add a
+Developer ID certificate plus notarization credentials
 (`APPLE_ID`/`APPLE_APP_SPECIFIC_PASSWORD`/`APPLE_TEAM_ID`) to CI/your
 environment and extend the `mac` build config to notarize.
 

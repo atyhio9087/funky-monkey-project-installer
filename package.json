@@ -61,7 +61,7 @@
       "extendInfo": {
         "NSMicrophoneUsageDescription": "Funky Monkey Visualizer uses your microphone only in Live mode to draw visuals from sound playing in the room. Audio is processed on your device and is never recorded or sent anywhere."
       },
-      "hardenedRuntime": true,
+      "identity": null,
       "gatekeeperAssess": false
     },
     "dmg": {
